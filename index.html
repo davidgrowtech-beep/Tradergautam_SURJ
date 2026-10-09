@@ -86,7 +86,7 @@ footer a{text-decoration:underline;text-underline-offset:2px}
   <h1>चार्ट पढ़ना सीखें,<br>सिग्नल के पीछे न भागें</h1>
   <p class="en">Learn to read charts, not chase signals.</p>
   <p class="sub">प्राइस एक्शन, स्ट्रक्चर और रिस्क — स्टेप बाय स्टेप आसान भाषा में, ताकि स्किल हमेशा आपके साथ रहे।<small>Structured lessons on price action, structure and risk, taught step by step.</small></p>
-  <a href="#" class="btn" data-cta="hero">
+  <a href="https://t.me/+JoVs7MROexdmOWI1" class="btn" data-cta="hero">
     <span class="ic"><svg viewBox="0 0 24 24"><path d="M21.05 3.66 17.9 19.42c-.24 1.06-.86 1.32-1.75.82l-4.82-3.55-2.33 2.24c-.26.26-.47.47-.96.47l.34-4.87 8.86-8-.01 0 8.9-8.03L2.9 12.6l-4.76-1.49c-1.04-.32-1.05-1.03.22-1.53l18.6-7.17c.86-.32 1.62.2 1.34 1.52Z"/></svg></span>
     <span class="lbl"><span class="t">टेलीग्राम पर फ्री जुड़ें</span><small>Join Free on Telegram</small></span>
   </a>
@@ -112,7 +112,7 @@ footer a{text-decoration:underline;text-underline-offset:2px}
 <section class="final">
   <h2>जहां हैं, वहीं से शुरू करें<br><span class="en">Start where you are.</span></h2>
   <p class="sub">फ्री · कभी भी छोड़ें · अंधे सिग्नल नहीं, सिर्फ़ लेसन।<small>No blind signals to copy — just lessons.</small></p>
-  <a href="#" class="btn" data-cta="final">
+  <a href="https://t.me/+JoVs7MROexdmOWI1" class="btn" data-cta="final">
     <span class="ic"><svg viewBox="0 0 24 24"><path d="M21.05 3.66 17.9 19.42c-.24 1.06-.86 1.32-1.75.82l-4.82-3.55-2.33 2.24c-.26.26-.47.47-.96.47l.34-4.87 8.86-8-.01 0 8.9-8.03L2.9 12.6l-4.76-1.49c-1.04-.32-1.05-1.03.22-1.53l18.6-7.17c.86-.32 1.62.2 1.34 1.52Z"/></svg></span>
     <span class="lbl"><span class="t">अभी जुड़ें — बिल्कुल फ्री</span><small>Join Now — Totally Free</small></span>
   </a>
@@ -127,7 +127,7 @@ footer a{text-decoration:underline;text-underline-offset:2px}
 </div>
 
 <div class="sticky">
-  <a href="#" class="btn" data-cta="sticky">
+  <a href="https://t.me/+JoVs7MROexdmOWI1" class="btn" data-cta="sticky">
     <span class="ic"><svg viewBox="0 0 24 24"><path d="M21.05 3.66 17.9 19.42c-.24 1.06-.86 1.32-1.75.82l-4.82-3.55-2.33 2.24c-.26.26-.47.47-.96.47l.34-4.87 8.86-8-.01 0 8.9-8.03L2.9 12.6l-4.76-1.49c-1.04-.32-1.05-1.03.22-1.53l18.6-7.17c.86-.32 1.62.2 1.34 1.52Z"/></svg></span>
     <span class="lbl"><span class="t">फ्री जुड़ें · Join Free</span></span>
   </a>
@@ -137,59 +137,55 @@ footer a{text-decoration:underline;text-underline-offset:2px}
 (function(){
   "use strict";
   /* ===== CONFIG ===== */
-  var TG_URL   = "https://t.me/+JoVs7MROexdmOWI1";
-  var TG_APP   = "tg://join?invite=JoVs7MROexdmOWI1"; // opens Telegram app directly (Android)
-  var EVENT    = "Lead";   // keep same as your Meta campaign's optimisation event
-  var FLUSH_MS = 500;           // time for pixel to send before leaving
+  var TG_URL    = "https://t.me/+JoVs7MROexdmOWI1";
+  var TG_INVITE = "JoVs7MROexdmOWI1";
+  var EVENT     = "Subscribe";   // MUST match the campaign result: "Website Subscribe"
   var MIN_DWELL_MS = 1000;
 
   var btns = document.querySelectorAll('.btn[data-cta]');
-  btns.forEach(function(b){ b.setAttribute('href', TG_URL); });
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  var FIRED_KEY='lwg_evt_v2', t0=Date.now(), human=false, locked=false;
+  var ua = navigator.userAgent || "";
+  var isAndroid = /Android/i.test(ua);
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var inApp = /FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(ua);   // Facebook / Instagram in-app browser
+
+  /* Android in-app browser: jump straight into the Telegram app (falls back to t.me if app missing) */
+  var href = TG_URL;
+  if(inApp && isAndroid){
+    href = "intent://join?invite="+TG_INVITE+"#Intent;scheme=tg;package=org.telegram.messenger;S.browser_fallback_url="+encodeURIComponent(TG_URL)+";end";
+  }
+  btns.forEach(function(b){ b.setAttribute('href', href); });
+
+  /* iOS in-app browser: no reliable JS escape, so show a hint */
+  if(inApp && isIOS){
+    var bar=document.createElement('div');
+    bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99;background:#FF9A00;color:#000;font:600 13px/1.4 -apple-system,Arial,sans-serif;padding:8px 12px;text-align:center';
+    bar.textContent='Telegram न खुले तो ⋯ दबाकर "Open in Browser" चुनें · If Telegram does not open, tap ⋯ → Open in Browser';
+    document.body.appendChild(bar);
+  }
+
+  var FIRED_KEY='lwg_evt_v3', t0=Date.now(), human=false;
   ['pointermove','touchstart','scroll','keydown','wheel'].forEach(function(e){
     window.addEventListener(e,function(){human=true},{passive:true,once:true});
   });
   function fired(){ try{return sessionStorage.getItem(FIRED_KEY)==='1'}catch(e){return false} }
   function mark(){ try{sessionStorage.setItem(FIRED_KEY,'1')}catch(e){} }
 
-  function openTelegram(){
-    var left=false;
-    function gone(){ left=true; }
-    document.addEventListener('visibilitychange',function(){ if(document.hidden) gone(); });
-    window.addEventListener('pagehide',gone);
-    if(/Android/i.test(navigator.userAgent)){
-      window.location.href = TG_APP;               // straight into the app, skips t.me web page
-      setTimeout(function(){ if(!left && !document.hidden) window.location.href = TG_URL; }, 1400); // fallback
-    } else {
-      window.location.href = TG_URL;               // iOS/desktop: universal link
-    }
-  }
-
-  function setBusy(on){
-    btns.forEach(function(b){
-      var t=b.querySelector('.t');
-      if(on){ b.classList.add('busy'); if(t){ t.setAttribute('data-o',t.textContent); t.textContent='टेलीग्राम खुल रहा है…'; } }
-      else { b.classList.remove('busy'); if(t && t.getAttribute('data-o')) t.textContent=t.getAttribute('data-o'); }
-    });
-  }
-
+  /* Real <a href> links: NO preventDefault and NO setTimeout, so the tap keeps its
+     user-activation and Telegram opens reliably. The pixel event is fired synchronously;
+     fbq sends it with sendBeacon so it survives the page leaving. */
   function onClick(e){
-    if(e.isTrusted===false){ window.location.href=TG_URL; return; }
-    e.preventDefault();
-    if(locked) return;                 // one tap = one event = one redirect
-    locked=true; setBusy(true);
+    if(e.isTrusted===false) return;                       // scripted click: just follow link, no event
     var ok = (Date.now()-t0)>=MIN_DWELL_MS && human && document.visibilityState!=='hidden';
-    if(ok && !fired() && typeof fbq==='function'){
-      fbq('track', EVENT, {content_name:'Learn with Gautam - Telegram Channel', cta_location:e.currentTarget.getAttribute('data-cta')||'unknown'}, {eventID:'lwg_'+Date.now()+'_'+Math.random().toString(36).slice(2,10)});
-      mark();
+    if(ok && !fired() && typeof window.fbq==='function'){
+      try{
+        window.fbq('track', EVENT, {content_name:'Learn with Gautam - Telegram Channel', cta_location:e.currentTarget.getAttribute('data-cta')||'unknown'}, {eventID:'lwg_'+Date.now()+'_'+Math.random().toString(36).slice(2,10)});
+        mark();
+      }catch(err){}
     }
-    setTimeout(openTelegram, FLUSH_MS);
-    setTimeout(function(){ locked=false; setBusy(false); }, 5000); // allow retry if Telegram didn't open
   }
   btns.forEach(function(b){ b.addEventListener('click',onClick); });
-  window.addEventListener('pageshow',function(e){ if(e.persisted){ locked=false; setBusy(false);} });
 })();
 </script>
 </body>
