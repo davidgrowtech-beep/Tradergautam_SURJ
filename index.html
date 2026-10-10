@@ -25,7 +25,7 @@ fbq('track', 'PageView');
 :root{--bg:#0B1026;--bg2:#141B3D;--card:#1B2350;--txt:#F4F6FF;--dim:#A9B2DB;--cy:#00C6FF;--pu:#8E2DE2;--pk:#FF2E93;--or:#FF9A00;--gr:#2EE6A6}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
-body{background:#070B1C;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans Devanagari','Noto Sans',Arial,sans-serif;overflow-x:hidden;padding-bottom:92px;line-height:1.55}
+body{background:#070B1C;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans Devanagari','Noto Sans',Arial,sans-serif;overflow-x:hidden;padding-bottom:118px;line-height:1.55}
 a{color:inherit;text-decoration:none}img{max-width:100%;display:block}
 .page{max-width:480px;margin:0 auto;min-height:100vh;background:radial-gradient(120% 60% at 50% 0,#2A1B6B 0,var(--bg) 60%);box-shadow:0 0 60px rgba(0,0,0,.5)}
 header{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -72,6 +72,11 @@ footer a{text-decoration:underline;text-underline-offset:2px}
 .sticky{position:fixed;left:0;right:0;bottom:0;z-index:60;max-width:480px;margin:0 auto;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(7,11,28,.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.12)}
 .sticky .btn{font-size:16.5px;padding:12px 16px}
 @media(prefers-reduced-motion:reduce){.btn,.btn::after,.logo{animation:none}}
+.stk-note{font-size:12.5px;font-weight:700;text-align:center;color:#FFD27A;margin-bottom:7px;line-height:1.35}
+.stk-note b{color:#fff}
+.back{position:fixed;left:12px;right:12px;bottom:calc(112px + env(safe-area-inset-bottom));z-index:70;max-width:456px;margin:0 auto;background:#FF9A00;color:#000;border-radius:14px;padding:12px 14px;font:700 13.5px/1.4 -apple-system,Arial,'Noto Sans Devanagari',sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none}
+.back a{display:block;margin-top:8px;background:#000;color:#fff;text-align:center;padding:10px;border-radius:10px;font-weight:800}
+.back small{display:block;font-weight:600;opacity:.85}
 </style>
 </head>
 <body>
@@ -127,6 +132,7 @@ footer a{text-decoration:underline;text-underline-offset:2px}
 </div>
 
 <div class="sticky">
+  <div class="stk-note">👆 Telegram खुलने पर <b>"Request to Join"</b> ज़रूर दबाएं<br><span style="font-weight:600;opacity:.9">Tap <b>"Request to Join"</b> inside Telegram</span></div>
   <a href="https://t.me/+JoVs7MROexdmOWI1" class="btn" data-cta="sticky">
     <span class="ic"><svg viewBox="0 0 24 24"><path d="M21.05 3.66 17.9 19.42c-.24 1.06-.86 1.32-1.75.82l-4.82-3.55-2.33 2.24c-.26.26-.47.47-.96.47l.34-4.87 8.86-8-.01 0 8.9-8.03L2.9 12.6l-4.76-1.49c-1.04-.32-1.05-1.03.22-1.53l18.6-7.17c.86-.32 1.62.2 1.34 1.52Z"/></svg></span>
     <span class="lbl"><span class="t">फ्री जुड़ें · Join Free</span></span>
@@ -139,8 +145,15 @@ footer a{text-decoration:underline;text-underline-offset:2px}
   /* ===== CONFIG ===== */
   var TG_URL    = "https://t.me/+JoVs7MROexdmOWI1";
   var TG_INVITE = "JoVs7MROexdmOWI1";
-  var EVENT     = "Subscribe";   // MUST match the campaign result: "Website Subscribe"
-  var MIN_DWELL_MS = 1000;
+  var EVENT     = "Lead";          // must match the campaign result: "Website Lead"
+  var CFG = {
+    ignoreClickMs: 1000,   // tap in first 1s: Telegram STILL opens, but no Lead
+    minMovePx: 60,         // real scroll / swipe / mouse movement (human is looking)
+    minEngagedMs: 1500,    // ...and must stay this long after first real movement
+    minDwellMs: 3000,      // total VISIBLE time on page before a tap counts as Lead
+    dedupHours: 24,        // one Lead per device per 24h (never blocks Telegram access)
+    reportFiltered: true   // custom "FilteredClick" event with reason (diagnostics only)
+  };
 
   var btns = document.querySelectorAll('.btn[data-cta]');
   document.getElementById('year').textContent = new Date().getFullYear();
@@ -148,16 +161,16 @@ footer a{text-decoration:underline;text-underline-offset:2px}
   var ua = navigator.userAgent || "";
   var isAndroid = /Android/i.test(ua);
   var isIOS = /iPhone|iPad|iPod/i.test(ua);
-  var inApp = /FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(ua);   // Facebook / Instagram in-app browser
+  var inApp = /FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(ua);
+  var isBot = navigator.webdriver===true || /bot|crawl|spider|facebookexternalhit|Facebot|TelegramBot|HeadlessChrome|Lighthouse|PhantomJS|Selenium|Puppeteer/i.test(ua);
 
-  /* Android in-app browser: jump straight into the Telegram app (falls back to t.me if app missing) */
+  /* Telegram link is ALWAYS present and ALWAYS works. Filters below only decide the pixel event. */
   var href = TG_URL;
   if(inApp && isAndroid){
     href = "intent://join?invite="+TG_INVITE+"#Intent;scheme=tg;package=org.telegram.messenger;S.browser_fallback_url="+encodeURIComponent(TG_URL)+";end";
   }
   btns.forEach(function(b){ b.setAttribute('href', href); });
 
-  /* iOS in-app browser: no reliable JS escape, so show a hint */
   if(inApp && isIOS){
     var bar=document.createElement('div');
     bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99;background:#FF9A00;color:#000;font:600 13px/1.4 -apple-system,Arial,sans-serif;padding:8px 12px;text-align:center';
@@ -165,27 +178,100 @@ footer a{text-decoration:underline;text-underline-offset:2px}
     document.body.appendChild(bar);
   }
 
-  var FIRED_KEY='lwg_evt_v3', t0=Date.now(), human=false;
-  ['pointermove','touchstart','scroll','keydown','wheel'].forEach(function(e){
-    window.addEventListener(e,function(){human=true},{passive:true,once:true});
-  });
-  function fired(){ try{return sessionStorage.getItem(FIRED_KEY)==='1'}catch(e){return false} }
-  function mark(){ try{sessionStorage.setItem(FIRED_KEY,'1')}catch(e){} }
+  /* ---- persistent de-dupe (localStorage + cookie) ---- */
+  var KEY='lwg_lead_v5';
+  function stored(){
+    var v=null;
+    try{v=localStorage.getItem(KEY)}catch(e){}
+    if(!v){ var m=document.cookie.match(/(?:^|; )lwg_lead_v5=([^;]*)/); if(m) v=m[1]; }
+    return v;
+  }
+  function already(){ var t=parseInt(stored(),10); return !!t && (Date.now()-t) < CFG.dedupHours*36e5; }
+  function mark(){
+    var v=String(Date.now());
+    try{localStorage.setItem(KEY,v)}catch(e){}
+    try{document.cookie=KEY+'='+v+'; max-age='+(CFG.dedupHours*3600)+'; path=/; SameSite=Lax'}catch(e){}
+  }
 
-  /* Real <a href> links: NO preventDefault and NO setTimeout, so the tap keeps its
-     user-activation and Telegram opens reliably. The pixel event is fired synchronously;
-     fbq sends it with sendBeacon so it survives the page leaving. */
+  /* ---- engagement tracking ---- */
+  var t0=Date.now(), clickedAt=0, sent=false, reported=false;
+  var visMs=0, visSince=(document.visibilityState==='visible')?Date.now():0;
+  function visibleMs(){ return visMs + (visSince ? Date.now()-visSince : 0); }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'){ visSince=Date.now(); }
+    else if(visSince){ visMs+=Date.now()-visSince; visSince=0; }
+  });
+
+  var moved=0, firstMoveAt=0, lastX=null, lastY=null, lastScroll=window.pageYOffset||0, touchedElsewhere=false;
+  function addMove(px){
+    if(px<=0) return;
+    moved+=px;
+    if(!firstMoveAt && moved>=CFG.minMovePx) firstMoveAt=Date.now();
+  }
+  window.addEventListener('scroll',function(){
+    var y=window.pageYOffset||0; addMove(Math.abs(y-lastScroll)); lastScroll=y;
+  },{passive:true});
+  function track(e){
+    var p=(e.touches&&e.touches[0])||e;
+    if(p.clientX==null) return;
+    if(lastX!==null) addMove(Math.abs(p.clientX-lastX)+Math.abs(p.clientY-lastY));
+    lastX=p.clientX; lastY=p.clientY;
+  }
+  window.addEventListener('pointermove',track,{passive:true});
+  window.addEventListener('touchmove',track,{passive:true});
+  window.addEventListener('touchend',function(){lastX=null;lastY=null},{passive:true});
+  /* a touch on the page that is not the CTA also proves a person is there (tap-without-scroll users) */
+  window.addEventListener('touchstart',function(e){
+    if(!(e.target && e.target.closest && e.target.closest('.btn[data-cta]'))) touchedElsewhere=true;
+  },{passive:true});
+
+  function filterReason(e){
+    if(e.isTrusted===false) return 'untrusted';
+    if(isBot) return 'bot';
+    var now=Date.now();
+    if(now-t0 < CFG.ignoreClickMs) return 'too_fast';
+    if(visibleMs() < CFG.minDwellMs) return 'short_dwell';
+    var humanProof = moved>=CFG.minMovePx || touchedElsewhere;
+    if(!humanProof) return 'no_movement';
+    if(moved>=CFG.minMovePx && firstMoveAt && now-firstMoveAt < CFG.minEngagedMs && !touchedElsewhere) return 'short_engage';
+    if(already()) return 'duplicate';
+    return '';
+  }
+
+  /* Real <a href>: no preventDefault / no setTimeout, so Telegram always opens. */
   function onClick(e){
-    if(e.isTrusted===false) return;                       // scripted click: just follow link, no event
-    var ok = (Date.now()-t0)>=MIN_DWELL_MS && human && document.visibilityState!=='hidden';
-    if(ok && !fired() && typeof window.fbq==='function'){
+    clickedAt=Date.now();
+    var reason=filterReason(e);
+    var cta=e.currentTarget.getAttribute('data-cta')||'unknown';
+    if(typeof window.fbq!=='function') return;
+    if(!reason && !sent){
       try{
-        window.fbq('track', EVENT, {content_name:'Learn with Gautam - Telegram Channel', cta_location:e.currentTarget.getAttribute('data-cta')||'unknown'}, {eventID:'lwg_'+Date.now()+'_'+Math.random().toString(36).slice(2,10)});
-        mark();
+        window.fbq('track', EVENT, {content_name:'Learn with Gautam - Telegram Channel', cta_location:cta}, {eventID:'lwg_'+Date.now()+'_'+Math.random().toString(36).slice(2,10)});
+        sent=true; mark();
+      }catch(err){}
+    } else if(reason && CFG.reportFiltered && !reported){
+      reported=true;
+      try{
+        window.fbq('trackCustom','FilteredClick',{reason:reason, dwell_ms:Math.round(visibleMs()), moved_px:Math.round(moved), cta_location:cta});
       }catch(err){}
     }
   }
   btns.forEach(function(b){ b.addEventListener('click',onClick); });
+
+  /* ---- recovery: user came back from Telegram -> maybe forgot "Request to Join" ---- */
+  var back=null;
+  function showBack(){
+    if(back || !clickedAt) return;
+    back=document.createElement('div'); back.className='back';
+    back.innerHTML='क्या आपने Telegram में <b>"Request to Join"</b> दबाया?<small>Did you tap "Request to Join"? If not, open it again.</small><a href="'+href+'">फिर से Telegram खोलें · Open Telegram again</a>';
+    document.body.appendChild(back); back.style.display='block';
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible' && clickedAt && (Date.now()-clickedAt)>1500) showBack();
+  });
+  window.addEventListener('pageshow',function(ev){
+    if(ev.persisted && clickedAt) showBack();
+  });
 })();
 </script>
 </body>
