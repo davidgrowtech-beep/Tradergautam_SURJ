@@ -145,13 +145,13 @@ footer a{text-decoration:underline;text-underline-offset:2px}
   /* ===== CONFIG ===== */
   var TG_URL    = "https://t.me/+JoVs7MROexdmOWI1";
   var TG_INVITE = "JoVs7MROexdmOWI1";
-  var EVENT     = "Lead";          // must match the campaign result: "Website Lead"
+  var EVENT     = "Subscribe";          // must match the campaign result: "Website Subscribe"
   var CFG = {
-    ignoreClickMs: 1000,   // tap in first 1s: Telegram STILL opens, but no Lead
+    ignoreClickMs: 1000,   // tap in first 1s: Telegram STILL opens, but no Subscribe
     minMovePx: 60,         // real scroll / swipe / mouse movement (human is looking)
     minEngagedMs: 1500,    // ...and must stay this long after first real movement
-    minDwellMs: 3000,      // total VISIBLE time on page before a tap counts as Lead
-    dedupHours: 24,        // one Lead per device per 24h (never blocks Telegram access)
+    minDwellMs: 3000,      // total VISIBLE time on page before a tap counts as Subscribe
+    dedupHours: 24,        // one Subscribe per device per 24h (never blocks Telegram access)
     reportFiltered: true   // custom "FilteredClick" event with reason (diagnostics only)
   };
 
@@ -179,11 +179,11 @@ footer a{text-decoration:underline;text-underline-offset:2px}
   }
 
   /* ---- persistent de-dupe (localStorage + cookie) ---- */
-  var KEY='lwg_lead_v5';
+  var KEY='lwg_Subscribe_v5';
   function stored(){
     var v=null;
     try{v=localStorage.getItem(KEY)}catch(e){}
-    if(!v){ var m=document.cookie.match(/(?:^|; )lwg_lead_v5=([^;]*)/); if(m) v=m[1]; }
+    if(!v){ var m=document.cookie.match(/(?:^|; )lwg_Subscribe_v5=([^;]*)/); if(m) v=m[1]; }
     return v;
   }
   function already(){ var t=parseInt(stored(),10); return !!t && (Date.now()-t) < CFG.dedupHours*36e5; }
