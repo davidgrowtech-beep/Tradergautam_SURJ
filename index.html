@@ -47,10 +47,13 @@ small{color:var(--muted)}
 .disc{margin-top:18px;font-size:11.5px;color:#8f93c4;text-align:center;line-height:1.6}
 .ad{margin-top:14px;text-align:center;font-size:12px;color:var(--muted)}
 .ad a{color:var(--gold);text-decoration:none;font-weight:600}
+.trap{position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+#dbg{position:fixed;bottom:6px;left:6px;z-index:9;background:#000c;color:#0f0;font:11px monospace;padding:4px 6px;border-radius:6px;display:none}
 @media (prefers-reduced-motion:reduce){.logo,.cta.ready,.cta.ready::after{animation:none}}
 </style>
 </head>
 <body>
+<a class="trap" id="trap" href="#trap" tabindex="-1" aria-hidden="true">join</a><div id="dbg"></div>
 <div class="wrap">
   <div id="iab" class="hi">⚠️ कृपया इस पेज को Chrome / Safari में खोलें (ऊपर ⋮ मेनू → Open in browser). / Please open this page in your browser for smooth Telegram opening.</div>
 
@@ -105,7 +108,8 @@ var CFG={
   tg:'https://t.me/+JoVs7MROexdmOWI1',
   event:'Lead',
   page:'Learn Enhanced Skills with Gautam Jha',
-  minDwellMs:2000
+  minDwellMs:2000,
+  minScore:5
 };
 /* ===== Meta Pixel (no auto PageView: qualified PageView is fired below) ===== */
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
@@ -113,7 +117,10 @@ fbq('init',CFG.pixel);
 
 (function(){
   var ua=navigator.userAgent||'';
-  var t0=Date.now(),interacted=false,focusedSecs=0,pvFired=false;
+  var q=location.search||'';
+  var DEBUG=/[?&]debug=1/.test(q);
+  var t0=Date.now(),focusedSecs=0,pvFired=false,going=false;
+  var trusted=false,anyAct=false,scrolled=false,tDown=0,downX=-1,downY=-1,trapHit=false;
   var $=function(id){return document.getElementById(id)};
   var ctas=[$('cta1'),$('cta2')],hints=[$('hint1'),$('hint2')];
 
@@ -128,6 +135,7 @@ fbq('init',CFG.pixel);
 
   var inApp=/FBAN|FBAV|FB_IAB|FBIOS|Instagram/i.test(ua);
   var isAndroid=/Android/i.test(ua);
+  var isMobileUA=/Android|iPhone|iPad|iPod|Mobile/i.test(ua);
   var finalHref=CFG.tg;
   if(inApp&&isAndroid){
     finalHref='intent://'+CFG.tg.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(CFG.tg)+';end';
@@ -135,11 +143,35 @@ fbq('init',CFG.pixel);
     $('iab').style.display='block';
   }
 
-  ['touchstart','pointerdown','mousedown','keydown','scroll','mousemove'].forEach(function(ev){
-    window.addEventListener(ev,function(e){if(e.isTrusted)interacted=true},{passive:true});
+  /* honeypot: invisible link, only automation touches it */
+  ['click','focus','mousedown','touchstart'].forEach(function(ev){$('trap').addEventListener(ev,function(e){e.preventDefault();trapHit=true})});
+
+  /* human signals */
+  ['touchstart','pointerdown','mousedown','keydown'].forEach(function(ev){
+    window.addEventListener(ev,function(e){if(e.isTrusted){trusted=true;anyAct=true}},{passive:true});
+  });
+  window.addEventListener('scroll',function(e){if(e.isTrusted){anyAct=true;if((window.scrollY||0)>20)scrolled=true}},{passive:true});
+  window.addEventListener('mousemove',function(e){if(e.isTrusted)anyAct=true},{passive:true});
+  ctas.forEach(function(a){
+    a.addEventListener('pointerdown',function(e){if(e.isTrusted){tDown=Date.now();downX=e.clientX;downY=e.clientY}},{passive:true});
   });
 
-  function ready(){return !isBot&&interacted&&(Date.now()-t0>=CFG.minDwellMs)}
+  /* 0-9 score; no effort needed from the visitor */
+  function score(){
+    var s=0,dwell=Date.now()-t0;
+    if(trusted)s+=2;
+    if(scrolled)s+=1;
+    if(dwell>=CFG.minDwellMs)s+=1;
+    if(focusedSecs>=2)s+=1;
+    var touch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+    if(touch===isMobileUA)s+=1;
+    if(/[?&]fbclid=/.test(q))s+=1;
+    if(window.innerWidth>=300&&screen.width>0&&screen.height>0&&!(screen.width===800&&screen.height===600))s+=1;
+    if(navigator.languages&&navigator.languages.length&&(navigator.hardwareConcurrency||0)>0)s+=1;
+    return s;
+  }
+  function ready(){return !isBot&&!trapHit&&anyAct&&dwellOk()&&score()>=CFG.minScore}
+  function dwellOk(){return Date.now()-t0>=CFG.minDwellMs}
 
   function render(){
     var r=ready();
@@ -156,26 +188,30 @@ fbq('init',CFG.pixel);
       }
     });
     if(r)hints.forEach(function(h){h.classList.remove('show')});
+    if(DEBUG){var d=$('dbg');d.style.display='block';d.textContent='score '+score()+' trusted:'+trusted+' scroll:'+scrolled+' bot:'+isBot+' trap:'+trapHit}
   }
-  setInterval(render,250);render();
+  setInterval(function(){if(document.visibilityState==='visible'&&document.hasFocus())focusedSecs+=0.25;render()},250);render();
 
   /* qualified PageView: interaction + 3s, or focused/visible 8s */
   setInterval(function(){
-    if(isBot||pvFired)return;
-    if(document.visibilityState==='visible'&&document.hasFocus())focusedSecs+=0.5;
+    if(isBot||trapHit||pvFired)return;
     var el=Date.now()-t0;
-    if((interacted&&el>=3000)||focusedSecs>=8){
+    if((anyAct&&el>=3000)||focusedSecs>=8){
       pvFired=true;
       try{fbq('track','PageView')}catch(e){}
     }
   },500);
 
-  /* CTA click: Lead only on a trusted, human tap after dwell time; navigation stays native */
+  /* CTA tap: real finger tap check (press->release 30-1500ms, real coordinates), then Lead, then go */
   function onCta(e){
     var a=e.currentTarget;
-    if(!e.isTrusted||isBot){e.preventDefault();return}
-    if(!ready()){
-      e.preventDefault();
+    e.preventDefault();
+    if(!e.isTrusted||isBot||trapHit||going)return;
+    var hold=tDown?Date.now()-tDown:-1;
+    var kb=(e.detail===0&&e.clientX===0&&e.clientY===0&&tDown===0);   /* keyboard Enter (accessibility) */
+    var humanTap=kb||(hold>=30&&hold<=1500&&(e.clientX>0||e.clientY>0));
+    tDown=0;
+    if(!ready()||!humanTap){
       var h=hints[a.getAttribute('data-cta')==='1'?0:1];
       h.classList.add('show');
       return;
@@ -187,6 +223,8 @@ fbq('init',CFG.pixel);
       var id='ld_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
       try{fbq('track',CFG.event,{content_name:CFG.page},{eventID:id})}catch(x){}
     }
+    going=true;
+    setTimeout(function(){going=false;window.location.href=finalHref},300);
   }
   ctas.forEach(function(a){a.addEventListener('click',onCta)});
 })();
