@@ -9,7 +9,8 @@
 <meta name="theme-color" content="#050a1c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;800&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;800&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;800&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{--bg:#050a1c;--card:#14163a;--line:#2b2f6b;--gold:#ffc93c;--orange:#00b4ff;--pink:#7a5cff;--text:#f6f6ff;--muted:#b9bce0}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -49,6 +50,7 @@ small{color:var(--muted)}
 .ad a{color:var(--gold);text-decoration:none;font-weight:600}
 .trap{position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
 #dbg{position:fixed;bottom:6px;left:6px;z-index:9;background:#000c;color:#0f0;font:11px monospace;padding:4px 6px;border-radius:6px;display:none}
+#back{display:none;background:#06331f;border:1px solid #3ddc97;color:#bff5dc;border-radius:12px;padding:10px 12px;font-size:13.5px;margin-top:14px;text-align:center}
 @media (prefers-reduced-motion:reduce){.logo,.cta.ready,.cta.ready::after{animation:none}}
 </style>
 </head>
@@ -62,6 +64,7 @@ small{color:var(--muted)}
     <div><span class="eyebrow hi">🎓 फ्री लर्निंग कम्युनिटी • Free Learning Community</span></div>
   </header>
 
+  <div id="back" class="hi">✅ Telegram खुला? वहाँ “REQUEST TO JOIN” दबाना न भूलें। नहीं खुला तो नीचे बटन फिर दबाएं।<br><small>Tap “REQUEST TO JOIN” inside Telegram. If it did not open, tap the button again.</small></div>
   <a id="cta1" class="cta" href="#cta1" rel="noopener" data-cta="1">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.8 15.6l-.4 4.2c.6 0 .9-.3 1.2-.6l2.9-2.7 6 4.4c1.1.6 1.9.3 2.2-1L24 4.1c.4-1.6-.6-2.3-1.7-1.9L1.5 10.3c-1.6.6-1.6 1.5-.3 1.9l5.3 1.6 12.3-7.8c.6-.4 1.1-.2.7.2z"/></svg>
     <span class="hi lbl">⏳ लोड हो रहा है… / Loading…</span>
@@ -109,7 +112,8 @@ var CFG={
   event:'Lead',
   page:'Learn Enhanced Skills with Gautam Jha',
   minDwellMs:2000,
-  minScore:5
+  minScore:5,
+  androidDirect:true   /* Android in-app: open Telegram app directly. Set false to use the Chrome hop instead */
 };
 /* ===== Meta Pixel (no auto PageView: qualified PageView is fired below) ===== */
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
@@ -119,8 +123,8 @@ fbq('init',CFG.pixel);
   var ua=navigator.userAgent||'';
   var q=location.search||'';
   var DEBUG=/[?&]debug=1/.test(q);
-  var t0=Date.now(),focusedSecs=0,pvFired=false,going=false;
-  var trusted=false,anyAct=false,scrolled=false,tDown=0,downX=-1,downY=-1,trapHit=false;
+  var t0=Date.now(),visSecs=0,pvFired=false;
+  var trusted=false,anyAct=false,scrolled=false,tDown=0,trapHit=false,tapped=false,tapAt=0,returned=false;
   var $=function(id){return document.getElementById(id)};
   var ctas=[$('cta1'),$('cta2')],hints=[$('hint1'),$('hint2')];
 
@@ -137,8 +141,14 @@ fbq('init',CFG.pixel);
   var isAndroid=/Android/i.test(ua);
   var isMobileUA=/Android|iPhone|iPad|iPod|Mobile/i.test(ua);
   var finalHref=CFG.tg;
+  var hashM=CFG.tg.match(/t\.me\/\+([\w-]+)/);
   if(inApp&&isAndroid){
-    finalHref='intent://'+CFG.tg.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(CFG.tg)+';end';
+    if(CFG.androidDirect&&hashM){
+      /* open the Telegram app directly from Facebook's browser (no Chrome hop); falls back to the t.me page */
+      finalHref='intent://join?invite='+hashM[1]+'#Intent;scheme=tg;package=org.telegram.messenger;S.browser_fallback_url='+encodeURIComponent(CFG.tg)+';end';
+    }else{
+      finalHref='intent://'+CFG.tg.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(CFG.tg)+';end';
+    }
   }else if(inApp){
     $('iab').style.display='block';
   }
@@ -153,25 +163,24 @@ fbq('init',CFG.pixel);
   window.addEventListener('scroll',function(e){if(e.isTrusted){anyAct=true;if((window.scrollY||0)>20)scrolled=true}},{passive:true});
   window.addEventListener('mousemove',function(e){if(e.isTrusted)anyAct=true},{passive:true});
   ctas.forEach(function(a){
-    a.addEventListener('pointerdown',function(e){if(e.isTrusted){tDown=Date.now();downX=e.clientX;downY=e.clientY}},{passive:true});
+    a.addEventListener('pointerdown',function(e){if(e.isTrusted)tDown=Date.now()},{passive:true});
   });
 
-  /* 0-9 score; no effort needed from the visitor */
+  /* 0-8 score; no effort needed from the visitor */
   function score(){
     var s=0,dwell=Date.now()-t0;
     if(trusted)s+=2;
     if(scrolled)s+=1;
     if(dwell>=CFG.minDwellMs)s+=1;
-    if(focusedSecs>=2)s+=1;
+    if(visSecs>=2)s+=1;
     var touch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
     if(touch===isMobileUA)s+=1;
     if(/[?&]fbclid=/.test(q))s+=1;
     if(window.innerWidth>=300&&screen.width>0&&screen.height>0&&!(screen.width===800&&screen.height===600))s+=1;
-    if(navigator.languages&&navigator.languages.length&&(navigator.hardwareConcurrency||0)>0)s+=1;
+    if(navigator.languages&&navigator.languages.length)s+=1;
     return s;
   }
-  function ready(){return !isBot&&!trapHit&&anyAct&&dwellOk()&&score()>=CFG.minScore}
-  function dwellOk(){return Date.now()-t0>=CFG.minDwellMs}
+  function ready(){return !isBot&&!trapHit&&anyAct&&(Date.now()-t0>=CFG.minDwellMs)&&score()>=CFG.minScore}
 
   function render(){
     var r=ready();
@@ -180,7 +189,7 @@ fbq('init',CFG.pixel);
       if(r){
         if(a.getAttribute('href')!==finalHref)a.setAttribute('href',finalHref);
         a.classList.add('ready');
-        lbl.textContent='📲 Telegram पर जुड़ें — Join Free';
+        lbl.textContent=returned?'📲 दोबारा Telegram खोलें — Open Telegram':'📲 Telegram पर जुड़ें — Join Free';
       }else{
         if(a.getAttribute('href')!=='#cta1')a.setAttribute('href','#cta1');
         a.classList.remove('ready');
@@ -188,34 +197,48 @@ fbq('init',CFG.pixel);
       }
     });
     if(r)hints.forEach(function(h){h.classList.remove('show')});
-    if(DEBUG){var d=$('dbg');d.style.display='block';d.textContent='score '+score()+' trusted:'+trusted+' scroll:'+scrolled+' bot:'+isBot+' trap:'+trapHit}
+    if(DEBUG){var d=$('dbg');d.style.display='block';d.textContent='score '+score()+' trusted:'+trusted+' scroll:'+scrolled+' bot:'+isBot+' trap:'+trapHit+' tapped:'+tapped}
   }
-  setInterval(function(){if(document.visibilityState==='visible'&&document.hasFocus())focusedSecs+=0.25;render()},250);render();
+  setInterval(function(){if(document.visibilityState==='visible')visSecs+=0.25;render()},250);render();
 
-  /* qualified PageView: interaction + 3s, or focused/visible 8s */
+  /* qualified PageView: interaction + 3s, or visible 8s */
   setInterval(function(){
     if(isBot||trapHit||pvFired)return;
     var el=Date.now()-t0;
-    if((anyAct&&el>=3000)||focusedSecs>=8){
+    if((anyAct&&el>=3000)||visSecs>=8){
       pvFired=true;
       try{fbq('track','PageView')}catch(e){}
     }
   },500);
 
-  /* CTA tap: real finger tap check (press->release 30-1500ms, real coordinates), then Lead, then go */
+  /* visitor came back from Telegram without finishing -> remind + let them retry (no 2nd Lead) */
+  function onBack(){
+    if(tapped&&!returned&&Date.now()-tapAt>1200){
+      returned=true;
+      var b=$('back');b.style.display='block';
+      try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){window.scrollTo(0,0)}
+      render();
+    }
+  }
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')onBack()});
+  window.addEventListener('pageshow',function(e){if(e.persisted)onBack()});
+
+  /* CTA tap. IMPORTANT: native anchor navigation on this same tap (no preventDefault, no setTimeout),
+     otherwise the browser loses 'user activation' and the Telegram app hand-off fails. */
   function onCta(e){
     var a=e.currentTarget;
-    e.preventDefault();
-    if(!e.isTrusted||isBot||trapHit||going)return;
+    if(!e.isTrusted||isBot||trapHit){e.preventDefault();return}
     var hold=tDown?Date.now()-tDown:-1;
-    var kb=(e.detail===0&&e.clientX===0&&e.clientY===0&&tDown===0);   /* keyboard Enter (accessibility) */
-    var humanTap=kb||(hold>=30&&hold<=1500&&(e.clientX>0||e.clientY>0));
+    var kb=(e.detail===0&&e.clientX===0&&e.clientY===0);
+    var realPos=(e.clientX>0||e.clientY>0);
+    var humanTap=kb||(tDown?(hold>=30&&hold<=1500&&realPos):(e.detail>=1&&realPos));
     tDown=0;
     if(!ready()||!humanTap){
-      var h=hints[a.getAttribute('data-cta')==='1'?0:1];
-      h.classList.add('show');
+      e.preventDefault();
+      hints[a.getAttribute('data-cta')==='1'?0:1].classList.add('show');
       return;
     }
+    a.setAttribute('href',finalHref);          /* guarantees the real link is used for this very tap */
     var k='leadFired_'+CFG.pixel,fired=false;
     try{fired=sessionStorage.getItem(k)==='1'}catch(x){}
     if(!fired){
@@ -223,8 +246,7 @@ fbq('init',CFG.pixel);
       var id='ld_'+Date.now()+'_'+Math.random().toString(36).slice(2,9);
       try{fbq('track',CFG.event,{content_name:CFG.page},{eventID:id})}catch(x){}
     }
-    going=true;
-    setTimeout(function(){going=false;window.location.href=finalHref},300);
+    tapped=true;tapAt=Date.now();
   }
   ctas.forEach(function(a){a.addEventListener('click',onCta)});
 })();
